@@ -18,6 +18,72 @@ const defaultUser = {
   isGuest: true, // Flag to identify guest users
 };
 
+const demoUsers = [
+  {
+    id: 'user-demo-001',
+    full_name: 'Rajesh Kumar',
+    email: 'rajesh.kumar@arogya.app',
+    phone_number: '+919876543210',
+    user_type: 'patient',
+    abha_id: 'ABHA1234567890',
+    address: '123 Health Street, Medical Complex',
+    date_of_birth: '1985-06-15',
+    gender: 'male',
+    blood_group: 'B+',
+    city: 'Delhi',
+    state: 'Delhi',
+    postal_code: '110001',
+    country: 'India',
+    emergency_contact: '+919876543210',
+    preferred_language: 'hindi',
+    is_verified: true,
+    created_at: '2023-01-15T10:00:00Z',
+    updated_at: '2024-03-20T14:30:00Z'
+  },
+  {
+    id: 'user-demo-002',
+    full_name: 'Dr. Priya Verma',
+    email: 'priya.verma@hospital.arogya.app',
+    phone_number: '+919111222333',
+    user_type: 'healthcare_provider',
+    abha_id: 'ABHA0987654321',
+    address: 'City Hospital, Medical Department',
+    date_of_birth: '1990-03-22',
+    gender: 'female',
+    blood_group: 'O+',
+    city: 'Mumbai',
+    state: 'Maharashtra',
+    postal_code: '400001',
+    country: 'India',
+    emergency_contact: '+919111222333',
+    preferred_language: 'english',
+    is_verified: true,
+    created_at: '2023-06-01T09:00:00Z',
+    updated_at: '2024-03-18T16:45:00Z'
+  },
+  {
+    id: 'user-demo-003',
+    full_name: 'Anjali Singh',
+    email: 'anjali.singh@arogya.app',
+    phone_number: '+919333444555',
+    user_type: 'patient',
+    abha_id: 'ABHA5566778899',
+    address: '456 Wellness Avenue',
+    date_of_birth: '1988-12-10',
+    gender: 'female',
+    blood_group: 'A+',
+    city: 'Bangalore',
+    state: 'Karnataka',
+    postal_code: '560001',
+    country: 'India',
+    emergency_contact: '+919333444555',
+    preferred_language: 'english',
+    is_verified: true,
+    created_at: '2023-09-10T11:20:00Z',
+    updated_at: '2024-03-19T13:15:00Z'
+  }
+];
+
 const loadStoredUser = () => {
   const rawUser = localStorage.getItem(STORAGE_KEY);
   if (rawUser) {
@@ -66,15 +132,12 @@ export const User = {
   },
 
   login: async (userType = 'patient') => {
+    const demoUser = demoUsers.find(u => u.user_type === userType) || demoUsers[0];
     const user = {
-      ...defaultUser,
+      ...demoUser,
       id: Date.now().toString(),
-      full_name: userType === 'healthcare_provider' ? 'Dr. Arogya Provider' : 'Arogya User',
-      email: userType === 'healthcare_provider' ? 'doctor@arogya.app' : 'user@arogya.app',
-      user_type: userType,
       is_verified: true,
-      preferred_language: 'english',
-      isGuest: false, // Real logged-in users are not guests
+      isGuest: false
     };
 
     saveUser(user);
@@ -98,6 +161,23 @@ export const User = {
 
   getGuestUser: () => {
     return { ...defaultUser };
+  },
+
+  getDemoUsers: () => [...demoUsers],
+
+  filter: async (query) => {
+    let filtered = demoUsers;
+    if (query.user_type) {
+      filtered = filtered.filter(u => u.user_type === query.user_type);
+    }
+    if (query.email) {
+      filtered = filtered.filter(u => u.email.includes(query.email));
+    }
+    return filtered;
+  },
+
+  list: async () => {
+    return [...demoUsers];
   },
 
   getToken,
