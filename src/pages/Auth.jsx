@@ -11,13 +11,27 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useAuth } from "@/lib/AutoContext";
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const { refreshAuth } = useAuth();
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showSetup, setShowSetup] = useState(false);
   const [authMethod, setAuthMethod] = useState('gmail'); // 'gmail', 'aadhaar', 'mobile'
+  const [loginMode, setLoginMode] = useState('select'); // 'select', 'patient', 'doctor'
+  const [patientLoginData, setPatientLoginData] = useState({
+    identifier: '', // aadhaar or mobile
+    identifierType: 'aadhaar', // 'aadhaar' or 'mobile'
+    otp: '',
+    otpSent: false
+  });
+  const [doctorLoginData, setDoctorLoginData] = useState({
+    licenseNumber: ''
+  });
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState('');
   const [setupData, setSetupData] = useState({
@@ -44,7 +58,11 @@ export default function AuthPage() {
     const checkAuth = async () => {
       try {
         const user = await User.me();
-        if (user.user_type) {
+        if (user.isGuest) {
+          // User is not authenticated, show login screen
+          setCurrentUser(null);
+          setShowSetup(false);
+        } else if (user.user_type) {
           if (user.user_type === 'healthcare_provider' && !user.is_verified) {
             setCurrentUser(user);
             setShowSetup(true);
@@ -70,11 +88,59 @@ export default function AuthPage() {
   const handleLogin = async () => {
     if (authMethod === 'gmail') {
       await User.login();
+      await refreshAuth(); // Refresh authentication state
     } else {
       // For demo purposes, simulate other auth methods
       alert(`${authMethod} authentication will be implemented soon. Using Gmail for now.`);
       await User.login();
+      await refreshAuth(); // Refresh authentication state
     }
+  };
+
+  const handleSendOtp = async () => {
+    if (!patientLoginData.identifier) {
+      alert("Please enter your Aadhaar number or mobile number");
+      return;
+    }
+    
+    setIsSendingOtp(true);
+    // Simulate sending OTP
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setPatientLoginData({...patientLoginData, otpSent: true});
+    setIsSendingOtp(false);
+    alert("OTP sent successfully! (Demo: Use 123456)");
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!patientLoginData.otp) {
+      alert("Please enter the OTP");
+      return;
+    }
+    
+    setIsVerifyingOtp(true);
+    // Simulate OTP verification
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    if (patientLoginData.otp === '123456') {
+      await User.login('patient');
+      await refreshAuth(); // Refresh authentication state
+      navigate(createPageUrl("Dashboard"));
+    } else {
+      alert("Invalid OTP. Demo: Use 123456");
+    }
+    setIsVerifyingOtp(false);
+  };
+
+  const handleDoctorLogin = async () => {
+    if (!doctorLoginData.licenseNumber) {
+      alert("Please enter your license number");
+      return;
+    }
+    
+    // Direct login without verification for demo
+    await User.login('healthcare_provider');
+    await refreshAuth(); // Refresh authentication state
+    navigate(createPageUrl("Dashboard"));
   };
 
   const handleLicenseVerification = async () => {
@@ -410,6 +476,199 @@ export default function AuthPage() {
               </form>
             </CardContent>
           </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (loginMode === 'select') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <div className="container mx-auto px-4 py-8 md:py-16">
+          <div className="text-center mb-12">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+              <Heart className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-4xl md:text-6xl font-bold text-blue-900 mb-4 tracking-tight">
+              Arogya Sahaya Connect
+            </h1>
+            <p className="text-xl text-blue-700 mb-8 max-w-2xl mx-auto leading-relaxed">
+              Your comprehensive healthcare management platform
+            </p>
+          </div>
+
+          <div className="max-w-2xl mx-auto">
+            <Card className="bg-white shadow-2xl border">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl text-blue-900">Choose Your Account Type</CardTitle>
+                <CardDescription>Select how you want to login to access the platform</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button 
+                  onClick={() => setLoginMode('patient')}
+                  className="w-full h-16 text-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                >
+                  <UserPlus className="w-6 h-6 mr-3" />
+                  Login as Patient
+                </Button>
+                <Button 
+                  onClick={() => setLoginMode('doctor')}
+                  variant="outline"
+                  className="w-full h-16 text-lg border-2 border-green-600 text-green-700 hover:bg-green-50"
+                >
+                  <Stethoscope className="w-6 h-6 mr-3" />
+                  Login as Doctor
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loginMode === 'patient') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <div className="container mx-auto px-4 py-8 md:py-16">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Heart className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-blue-900 mb-2">Patient Login</h1>
+            <p className="text-blue-700">Access your healthcare records securely</p>
+          </div>
+
+          <div className="max-w-md mx-auto">
+            <Card className="bg-white shadow-2xl border">
+              <CardHeader>
+                <CardTitle className="text-center">Login with Aadhaar or Mobile</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Login Method</Label>
+                  <Select 
+                    value={patientLoginData.identifierType} 
+                    onValueChange={(value) => setPatientLoginData({...patientLoginData, identifierType: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="aadhaar">Aadhaar Number</SelectItem>
+                      <SelectItem value="mobile">Mobile Number</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="identifier">
+                    {patientLoginData.identifierType === 'aadhaar' ? 'Aadhaar Number' : 'Mobile Number'}
+                  </Label>
+                  <Input
+                    id="identifier"
+                    type="text"
+                    value={patientLoginData.identifier}
+                    onChange={(e) => setPatientLoginData({...patientLoginData, identifier: e.target.value})}
+                    placeholder={patientLoginData.identifierType === 'aadhaar' ? 'Enter 12-digit Aadhaar number' : 'Enter mobile number'}
+                    className="w-full"
+                  />
+                </div>
+
+                {!patientLoginData.otpSent ? (
+                  <Button 
+                    onClick={handleSendOtp}
+                    disabled={isSendingOtp || !patientLoginData.identifier}
+                    className="w-full"
+                  >
+                    {isSendingOtp ? 'Sending OTP...' : 'Send OTP'}
+                  </Button>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="otp">Enter OTP</Label>
+                      <Input
+                        id="otp"
+                        type="text"
+                        value={patientLoginData.otp}
+                        onChange={(e) => setPatientLoginData({...patientLoginData, otp: e.target.value})}
+                        placeholder="Enter 6-digit OTP"
+                        className="w-full"
+                      />
+                    </div>
+                    <Button 
+                      onClick={handleVerifyOtp}
+                      disabled={isVerifyingOtp || !patientLoginData.otp}
+                      className="w-full"
+                    >
+                      {isVerifyingOtp ? 'Verifying...' : 'Verify & Login'}
+                    </Button>
+                  </>
+                )}
+
+                <Button 
+                  onClick={() => setLoginMode('select')}
+                  variant="ghost"
+                  className="w-full"
+                >
+                  Back to Account Type Selection
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loginMode === 'doctor') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <div className="container mx-auto px-4 py-8 md:py-16">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Stethoscope className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-blue-900 mb-2">Doctor Login</h1>
+            <p className="text-blue-700">Access patient records and manage healthcare services</p>
+          </div>
+
+          <div className="max-w-md mx-auto">
+            <Card className="bg-white shadow-2xl border">
+              <CardHeader>
+                <CardTitle className="text-center">Login with Medical License</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="license">Medical License Number</Label>
+                  <Input
+                    id="license"
+                    type="text"
+                    value={doctorLoginData.licenseNumber}
+                    onChange={(e) => setDoctorLoginData({...doctorLoginData, licenseNumber: e.target.value})}
+                    placeholder="e.g., MH-DOC-2023-001"
+                    className="w-full"
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleDoctorLogin}
+                  disabled={!doctorLoginData.licenseNumber}
+                  className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                >
+                  Login
+                </Button>
+
+                <Button 
+                  onClick={() => setLoginMode('select')}
+                  variant="ghost"
+                  className="w-full"
+                >
+                  Back to Account Type Selection
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     );

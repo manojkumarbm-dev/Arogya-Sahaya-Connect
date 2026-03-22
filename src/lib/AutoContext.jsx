@@ -1,6 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { apiClient, auth } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
+import { User } from '@/entities/User';
 
 const AuthContext = createContext();
 
@@ -17,61 +16,44 @@ export const AuthProvider = ({ children }) => {
   const checkAppState = async () => {
     try {
       setAuthError(null);
-      
-      // If we have a token, try to authenticate the user
-      if (appParams.token) {
-        await checkUserAuth();
-      } else {
-        setIsLoadingAuth(false);
-        setIsAuthenticated(false);
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setAuthError({
-        type: 'unknown',
-        message: error.message || 'An unexpected error occurred'
-      });
-      setIsLoadingAuth(false);
-    }
-  };
-
-  const checkUserAuth = async () => {
-    try {
       setIsLoadingAuth(true);
-      const currentUser = await auth.me();
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      setIsLoadingAuth(false);
-    } catch (error) {
-      console.error('User auth check failed:', error);
-      setIsLoadingAuth(false);
-      setIsAuthenticated(false);
+      const currentUser = await User.me();
       
-      // If user auth fails, it might be an expired token
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
+      if (currentUser.isGuest) {
+        // Guest user - not authenticated
+        setUser(currentUser);
+        setIsAuthenticated(false);
+      } else {
+        // Real authenticated user
+        setUser(currentUser);
+        setIsAuthenticated(true);
       }
+    } catch (error) {
+      // Not authenticated: set guest user state to allow browsing pages
+      const guest = User.getGuestUser();
+      setUser(guest);
+      setIsAuthenticated(false);
+      console.warn('User not authenticated, using guest account');
+    } finally {
+      setIsLoadingAuth(false);
     }
   };
 
-  const logout = (shouldRedirect = true) => {
+  const logout = async (shouldRedirect = true) => {
+    await User.logout();
     setUser(null);
     setIsAuthenticated(false);
-    
-    // Clear token from storage
-    localStorage.removeItem('app_access_token');
-    
+
     if (shouldRedirect) {
-      // Redirect to login or home page
-      window.location.href = '/';
+      window.location.href = '/auth';
     }
+  };
+
+  const refreshAuth = async () => {
+    await checkAppState();
   };
 
   const navigateToLogin = () => {
-    // Redirect to login page
     window.location.href = '/auth';
   };
 
@@ -82,6 +64,7 @@ export const AuthProvider = ({ children }) => {
       isLoadingAuth,
       authError,
       logout,
+      refreshAuth,
       navigateToLogin,
       checkAppState
     }}>
