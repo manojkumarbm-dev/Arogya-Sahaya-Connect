@@ -1,0 +1,65 @@
+{
+  "name": "MedicalRecord",
+  "type": "object",
+  "properties": {
+    "patient_abha_id": {
+      "type": "string",
+      "description": "ABHA ID of the patient"
+    },
+    "doctor_id": {
+      "type": "string",
+      "description": "ID of the treating doctor"
+    },
+    "record_type": {
+      "type": "string",
+      "enum": [
+        "consultation",
+        "test_report",
+        "prescription",
+        "discharge_summary",
+        "vaccination",
+        "other"
+      ],
+      "description": "Type of medical record"
+    },
+    "title": {
+      "type": "string",
+      "description": "Title/summary of the record"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL to uploaded document"
+    },
+    "record_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the medical record"
+    },
+    "diagnosis": {
+      "type": "string",
+      "description": "Medical diagnosis if applicable"
+    },
+    "medications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of prescribed medications"
+    },
+    "is_sensitive": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is sensitive medical information"
+    }
+  },
+  "required": [
+    "patient_abha_id",
+    "record_type",
+    "title",
+    "record_date"
+  ]
+}

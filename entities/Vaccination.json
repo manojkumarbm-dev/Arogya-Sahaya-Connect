@@ -1,0 +1,55 @@
+{
+  "name": "Vaccination",
+  "type": "object",
+  "properties": {
+    "patient_abha_id": {
+      "type": "string",
+      "description": "ABHA ID of the patient"
+    },
+    "vaccine_name": {
+      "type": "string",
+      "description": "Name of the vaccine"
+    },
+    "vaccination_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date when vaccination was administered"
+    },
+    "next_dose_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date for next dose if applicable"
+    },
+    "dose_number": {
+      "type": "number",
+      "description": "Dose number (1st, 2nd, booster, etc.)"
+    },
+    "vaccination_center": {
+      "type": "string",
+      "description": "Center where vaccination was done"
+    },
+    "batch_number": {
+      "type": "string",
+      "description": "Vaccine batch number"
+    },
+    "certificate_url": {
+      "type": "string",
+      "description": "URL to vaccination certificate"
+    },
+    "is_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether vaccination course is complete"
+    },
+    "reminder_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether reminders are enabled"
+    }
+  },
+  "required": [
+    "patient_abha_id",
+    "vaccine_name",
+    "vaccination_date"
+  ]
+}

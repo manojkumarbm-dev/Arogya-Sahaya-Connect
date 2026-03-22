@@ -1,0 +1,78 @@
+{
+  "name": "FamilyMember",
+  "type": "object",
+  "properties": {
+    "primary_user_id": {
+      "type": "string",
+      "description": "ID of the primary user managing this family member"
+    },
+    "name": {
+      "type": "string",
+      "description": "Name of family member"
+    },
+    "relationship": {
+      "type": "string",
+      "enum": [
+        "spouse",
+        "child",
+        "parent",
+        "sibling",
+        "grandparent",
+        "other"
+      ],
+      "description": "Relationship to primary user"
+    },
+    "abha_id": {
+      "type": "string",
+      "description": "ABHA ID of family member if available"
+    },
+    "date_of_birth": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of birth"
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "male",
+        "female",
+        "other"
+      ],
+      "description": "Gender"
+    },
+    "blood_group": {
+      "type": "string",
+      "enum": [
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "AB+",
+        "AB-",
+        "O+",
+        "O-"
+      ],
+      "description": "Blood group"
+    },
+    "phone_number": {
+      "type": "string",
+      "description": "Contact phone number"
+    },
+    "medical_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Chronic medical conditions"
+    },
+    "emergency_contact": {
+      "type": "string",
+      "description": "Emergency contact"
+    }
+  },
+  "required": [
+    "primary_user_id",
+    "name",
+    "relationship"
+  ]
+}
