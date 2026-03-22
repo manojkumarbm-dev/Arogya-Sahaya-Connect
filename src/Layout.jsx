@@ -98,7 +98,12 @@ export default function Layout({ children, currentPageName }) {
       const user = await User.me();
       setCurrentUser(user);
     } catch (error) {
-      // User not logged in
+      // User not logged in, use a guest patient so navigation is available
+      setCurrentUser({
+        user_type: 'patient',
+        full_name: 'Guest User',
+        abha_id: '',
+      });
     }
     setIsLoading(false);
   };
