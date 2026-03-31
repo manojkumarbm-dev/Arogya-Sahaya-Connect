@@ -1,40 +1,135 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Video, AlertTriangle } from 'lucide-react';
+import { Video, AlertTriangle, Camera, CameraOff } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 
-// A mock scanner component as third-party libraries aren't available
-const MockQrScanner = ({ onScan }) => {
-  const handleMockScan = () => {
-    // Updated mock data to include doctor-specific IDs and demonstrate conditional rendering
-    // This mock data now represents a doctor's profile.
-    // For patient profiles, abha_id would be present, and doctor_id/license_number would typically be absent.
-    const mockData = {
-      name: "Dr. Anya Sharma",
-      // abha_id: "11-1111-1111-1111", // Example patient ID - commented out for doctor mock
-      doctor_id: "DOC-987654", // Doctor-specific ID
-      license_number: "LIC-12345-MH", // Doctor's license number
-      blood_group: "A-",
-      type: "doctor", // Changed type to 'doctor'
-      emergency_contact: "+919988776655"
+// Real QR Scanner component using html5-qrcode library
+const QrScanner = ({ onScan, onError }) => {
+  const scannerRef = useRef(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [hasCamera, setHasCamera] = useState(false);
+  const [scanner, setScanner] = useState(null);
+
+  useEffect(() => {
+    // Check if camera is available
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(() => setHasCamera(true))
+      .catch(() => setHasCamera(false));
+
+    return () => {
+      // Cleanup scanner on unmount
+      if (scanner) {
+        scanner.clear().catch(console.error);
+      }
     };
-    onScan(JSON.stringify(mockData));
+  }, []);
+
+  const startScanning = () => {
+    if (!hasCamera) {
+      onError('Camera access is not available. Please check your camera permissions.');
+      return;
+    }
+
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+      'qr-reader',
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        showTorchButtonIfSupported: true,
+        showZoomSliderIfSupported: true,
+        defaultZoomValueIfSupported: 2,
+      },
+      false
+    );
+
+    setScanner(html5QrcodeScanner);
+    setIsScanning(true);
+
+    html5QrcodeScanner.render(
+      (decodedText) => {
+        // Success callback
+        onScan(decodedText);
+        html5QrcodeScanner.clear().catch(console.error);
+        setIsScanning(false);
+        setScanner(null);
+      },
+      (errorMessage) => {
+        // Error callback - we can ignore most errors as they're expected during scanning
+        console.log('QR scan error:', errorMessage);
+      }
+    );
+  };
+
+  const stopScanning = () => {
+    if (scanner) {
+      scanner.clear().catch(console.error);
+      setScanner(null);
+    }
+    setIsScanning(false);
   };
 
   return (
-    <div className="relative w-full aspect-square bg-gray-900 rounded-lg overflow-hidden flex flex-col items-center justify-center text-white p-4">
-      <Video className="w-16 h-16 text-gray-500 mb-4" />
-      <p className="text-center font-semibold">QR Scanner Unavailable</p>
-      <p className="text-center text-sm text-gray-400 mb-4">Camera-based QR scanning requires a specific library. This is a simulation.</p>
-      <Button onClick={handleMockScan}>Simulate Scan</Button>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4">
-        <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary-purple rounded-tl-lg" />
-        <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary-purple rounded-tr-lg" />
-        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary-purple rounded-bl-lg" />
-        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary-purple rounded-br-lg" />
+    <div className="space-y-4">
+      <div className="flex justify-center gap-2">
+        {!isScanning ? (
+          <Button
+            onClick={startScanning}
+            disabled={!hasCamera}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Camera className="w-4 h-4 mr-2" />
+            Start Scanning
+          </Button>
+        ) : (
+          <Button
+            onClick={stopScanning}
+            variant="destructive"
+          >
+            <CameraOff className="w-4 h-4 mr-2" />
+            Stop Scanning
+          </Button>
+        )}
       </div>
+
+      <div className="relative w-full aspect-square bg-gray-900 rounded-lg overflow-hidden">
+        <div id="qr-reader" ref={scannerRef} className="w-full h-full"></div>
+
+        {!isScanning && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
+            <Video className="w-16 h-16 text-gray-500 mb-4" />
+            <p className="text-center font-semibold mb-2">
+              {hasCamera ? 'Ready to Scan' : 'Camera Not Available'}
+            </p>
+            <p className="text-center text-sm text-gray-400">
+              {hasCamera
+                ? 'Click "Start Scanning" to begin QR code detection'
+                : 'Please check your camera permissions and try again'
+              }
+            </p>
+          </div>
+        )}
+
+        {/* Scanner frame overlay */}
+        {isScanning && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 pointer-events-none">
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-400 rounded-tl-lg" />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-400 rounded-tr-lg" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-400 rounded-bl-lg" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-400 rounded-br-lg" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 border-2 border-green-400 rounded-full opacity-50"></div>
+          </div>
+        )}
+      </div>
+
+      {isScanning && (
+        <div className="text-center">
+          <p className="text-sm text-gray-600">Position QR code within the frame to scan</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -42,6 +137,7 @@ const MockQrScanner = ({ onScan }) => {
 export default function QRScannerPage() {
   const [scanResult, setScanResult] = useState(null);
   const [error, setError] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   const handleScan = (data) => {
     if (data) {
@@ -49,11 +145,23 @@ export default function QRScannerPage() {
         const parsedData = JSON.parse(data);
         setScanResult(parsedData);
         setError(null);
+        setIsScanning(false);
       } catch (e) {
         setError('Invalid QR code format. Please scan a valid Arogya Sahaya profile QR code.');
         setScanResult(null);
+        setIsScanning(false);
       }
     }
+  };
+
+  const handleScanError = (errorMessage) => {
+    setError(errorMessage);
+    setIsScanning(false);
+  };
+
+  const handleScanStart = () => {
+    setIsScanning(true);
+    setError(null);
   };
 
   return (
@@ -65,8 +173,17 @@ export default function QRScannerPage() {
         </div>
 
         <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-purple-900 flex items-center gap-2">
+              <Video className="w-5 h-5" />
+              QR Scanner
+            </CardTitle>
+          </CardHeader>
           <CardContent className="p-6">
-            <MockQrScanner onScan={handleScan} />
+            <QrScanner
+              onScan={handleScan}
+              onError={handleScanError}
+            />
           </CardContent>
         </Card>
 
@@ -80,7 +197,10 @@ export default function QRScannerPage() {
         {scanResult && (
           <Card className="mt-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl">
             <CardHeader>
-              <CardTitle className="text-purple-900">Scanned Profile Data</CardTitle>
+              <CardTitle className="text-purple-900 flex items-center gap-2">
+                <Video className="w-5 h-5" />
+                Scanned Profile Data
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <p><span className="font-semibold">Name:</span> {scanResult.name}</p>

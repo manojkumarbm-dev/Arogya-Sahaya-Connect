@@ -86,3 +86,27 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* QR Scanner specific styles */
+#qr-reader {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+#qr-reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
+#qr-reader__scan_region {
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+#qr-reader__dashboard {
+  display: none !important;
+}
+
+#qr-reader__header_message {
+  display: none !important;
+}
