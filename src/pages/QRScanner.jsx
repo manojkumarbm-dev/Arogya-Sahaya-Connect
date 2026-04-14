@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Video, AlertTriangle, Camera, CameraOff } from 'lucide-react';
@@ -22,7 +22,7 @@ const QrScanner = ({ onScan, onError }) => {
     return () => {
       // Cleanup scanner on unmount
       if (scanner) {
-        scanner.clear().catch(console.error);
+        scanner.stop().then(() => scanner.clear()).catch(console.error);
       }
     };
   }, []);
@@ -33,41 +33,43 @@ const QrScanner = ({ onScan, onError }) => {
       return;
     }
 
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-      'qr-reader',
+    if (scanner) {
+      scanner.stop().then(() => scanner.clear()).catch(console.error);
+    }
+
+    const html5QrCode = new Html5Qrcode("qr-reader");
+    setScanner(html5QrCode);
+    setIsScanning(true);
+
+    html5QrCode.start(
+      { facingMode: "environment" }, // Use back camera on mobile
       {
         fps: 10,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0,
-        showTorchButtonIfSupported: true,
-        showZoomSliderIfSupported: true,
-        defaultZoomValueIfSupported: 2,
       },
-      false
-    );
-
-    setScanner(html5QrcodeScanner);
-    setIsScanning(true);
-
-    html5QrcodeScanner.render(
       (decodedText) => {
-        // Success callback
+        // Success callback - keep scanning for multiple codes
         onScan(decodedText);
-        html5QrcodeScanner.clear().catch(console.error);
-        setIsScanning(false);
-        setScanner(null);
       },
       (errorMessage) => {
-        // Error callback - we can ignore most errors as they're expected during scanning
+        // Error callback - ignore most scan errors as they're expected
         console.log('QR scan error:', errorMessage);
       }
-    );
+    ).catch((err) => {
+      console.error('Failed to start scanner:', err);
+      onError('Failed to start camera. Please try again.');
+      setIsScanning(false);
+      setScanner(null);
+    });
   };
 
   const stopScanning = () => {
     if (scanner) {
-      scanner.clear().catch(console.error);
-      setScanner(null);
+      scanner.stop().then(() => {
+        scanner.clear();
+        setScanner(null);
+      }).catch(console.error);
     }
     setIsScanning(false);
   };
